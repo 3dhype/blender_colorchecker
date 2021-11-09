@@ -1,4 +1,5 @@
 import bpy
+import colorsys
 
 class NODE_OT_ColorCheckerMatch(bpy.types.Operator):
     """Create a new Mesh Object"""
@@ -41,41 +42,7 @@ class NODE_OT_ColorCheckerMatch(bpy.types.Operator):
             scene.colorchecker_024,
             scene.colorchecker_001]
 
-        # derived from Blender's C++ version
-        def rgb_to_hsv(rgb):
-            cmax = max(rgb)
-            cmin = min(rgb)
-            cdelta = cmax - cmin
-            
-            v = cmax
-
-            if cmax != 0.0:
-                s = cdelta / cmax
-            else:
-                s = 0.0
-                h = 0.0
-                
-            if s == 0.0:
-                h = 0.0
-            else:
-                c = tuple(map(lambda i, j: i - j, (cmax, cmax, cmax), rgb))
-                c = tuple(col / cdelta for col in c)
-                
-                if rgb[0] == cmax:
-                    h = c[2] - c[1]
-                elif rgb[1] == cmax:
-                    h = 2.0 + c[0] - c[2]
-                else:
-                    h = 4.0 + c[1] - c[0]
-
-                h /= 6.0
-
-                if (h < 0.0):
-                    h += 1.0
-            
-            return (h, s, v)
-            
-        colorchecker_hsv = list(map(rgb_to_hsv, colorchecker_rgb))
+        colorchecker_hsv = list(map(colorsys.rgb_to_hsv, colorchecker_rgb))
         
         # plot hue points
         colorchecker_h = [hsv[0] for hsv in colorchecker_hsv]
@@ -88,21 +55,29 @@ class NODE_OT_ColorCheckerMatch(bpy.types.Operator):
             return -1 * cyclic + 0.5
         
         hh_points = hue_node.mapping.curves[0].points
-        while len(hue_node.mapping.curves[0].points) > 25:
+        while len(hue_node.mapping.curves[0].points) > 2:
             p = hue_node.mapping.curves[0].points[0]
             hue_node.mapping.curves[0].points.remove(p)
+        i = 2
+        while i < 25:
+            hue_node.mapping.curves[0].points.new((1.0/24)*i,0.5)
+            i = i + 1
         for index, h in enumerate(colorchecker_h):
             hue_x = index / 24
             hh_points[index].location = (hue_x, hue_y(hue_x, h))
         
         # plot saturation points
         colorchecker_s = [hsv[1] for hsv in colorchecker_hsv]
-        colorchecker_s = [((1.0 / s) / 2.0) for s in colorchecker_s]
+        # division by zero so I disabled this part
+        # colorchecker_s = [((1.0 / s) / 2.0) for s in colorchecker_s]
         
         hs_points = hue_node.mapping.curves[1].points
-        while len(hue_node.mapping.curves[1].points) > 25:
+        while len(hue_node.mapping.curves[1].points) > 2:
             p = hue_node.mapping.curves[1].points[0]
             hue_node.mapping.curves[1].points.remove(p)
+        i = 2
+        while i < 25:
+            hue_node.mapping.curves[1].points.new((1.0/24)*i,0.5)
         for index, s in enumerate(colorchecker_s):
             hs_points[index].location = (index / 24, s)
         hue_node.mapping.update()
